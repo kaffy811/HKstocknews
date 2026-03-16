@@ -21,6 +21,7 @@ env/
 dist/
 build/
 .cache/
+*.cache
 
 # Environment
 .env
@@ -29,3 +30,21 @@ build/
 # Node
 node_modules/
 .next/
+out/
+
+# Data / local db
+*.sqlite3
+*.db
+
+# Uploads / temp
+tmp/
+temp/
+uploads/
+
+# Test / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Mac / misc
+*.swp
