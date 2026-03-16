@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+  <title>AI 智能投研诊断</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #e5e7eb;
+    }
+    .phone-shell {
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: #f8fafc;
+      position: relative;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04), 0 20px 60px rgba(15, 23, 42, 0.12);
+    }
+    .safe-top {
+      padding-top: max(10px, env(safe-area-inset-top));
+    }
+    .safe-bottom {
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    .module-card {
+      border: 1px solid #eef2f7;
+      transition: transform .2s ease;
+    }
+    .module-card:hover { transform: translateY(-1px); }
+    .gradient-bg {
+      background: linear-gradient(135deg, #172554 0%, #0f172a 100%);
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-shell">
+    <div class="gradient-bg text-white px-4 safe-top pb-6">
+      <div class="flex items-center justify-between mb-5">
+        <a class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center" href="stock_detail_mobile.html">
+          <span class="iconify text-xl" data-icon="ri:close-line"></span>
+        </a>
+        <span class="text-[10px] opacity-60 font-mono tracking-widest">REPORT ID 2026031600700AI</span>
+      </div>
+
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-[28px] font-black leading-tight flex items-center">
+            <span class="iconify mr-2 text-yellow-400" data-icon="ri:sparkling-2-fill"></span>
+            AI 智能投研诊断
+          </h1>
+          <div class="mt-2 text-slate-300 text-xs leading-relaxed">腾讯控股 (00700.HK) · 生成时间 2026-03-16 14:45</div>
+        </div>
+        <div class="text-right shrink-0">
+          <div class="text-[10px] text-slate-400 uppercase tracking-wide">信息完整度</div>
+          <div class="text-2xl font-black text-yellow-400 mt-1">高</div>
+        </div>
+      </div>
+    </div>
+
+    <main class="px-4 -mt-4 pb-28 space-y-3">
+      <section class="bg-white p-4 rounded-2xl shadow-lg module-card">
+        <div class="flex items-center space-x-2 mb-3">
+          <div class="w-1 h-4 bg-blue-600 rounded"></div>
+          <h3 class="font-bold text-slate-900">事件摘要</h3>
+        </div>
+        <p class="text-sm text-slate-600 leading-7">
+          腾讯2025年财报显示收入与利润稳步增长，其中视频号广告、海外游戏业务成为核心增长引擎。同时，公司宣布2026年回购金额不少于1000亿港元，这一举措将显著提高每股收益表现。
+        </p>
+      </section>
+
+      <section class="bg-white p-4 rounded-2xl shadow-sm module-card">
+        <div class="flex items-center space-x-2 mb-3">
+          <div class="w-1 h-4 bg-indigo-600 rounded"></div>
+          <h3 class="font-bold text-slate-900">影响机制</h3>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-start">
+            <span class="bg-indigo-50 text-indigo-600 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-3 mt-0.5 shrink-0 font-bold">1</span>
+            <p class="text-sm text-slate-600 leading-6"><span class="font-bold text-slate-900">盈利预期上修：</span>高利润率的视频号广告增长抵消了传统电商淡季影响，机构分析师普遍上修未来两年获利预测。</p>
+          </div>
+          <div class="flex items-start">
+            <span class="bg-indigo-50 text-indigo-600 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-3 mt-0.5 shrink-0 font-bold">2</span>
+            <p class="text-sm text-slate-600 leading-6"><span class="font-bold text-slate-900">估值逻辑重塑：</span>千亿规模回购反映了管理层对公司现金流能力与股东回报的重视，有助于支撑估值中枢修复。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="bg-white p-4 rounded-2xl shadow-sm module-card">
+        <div class="flex items-center space-x-2 mb-3">
+          <div class="w-1 h-4 bg-green-600 rounded"></div>
+          <h3 class="font-bold text-slate-900">市场反应</h3>
+        </div>
+        <div class="rounded-2xl bg-green-50 p-4 flex items-center justify-between mb-3">
+          <div>
+            <div class="text-green-800 font-bold mb-1">量价齐升</div>
+            <div class="text-xs text-green-600">当前价格 328.40 · +3.45%</div>
+          </div>
+          <span class="iconify text-3xl text-green-600" data-icon="ri:stock-fill"></span>
+        </div>
+        <p class="text-sm text-slate-600 leading-7">
+          当前股价上行且成交放大，说明市场已给予正向反馈。若后续量能无法延续，则需警惕短线资金博弈后回吐。
+        </p>
+      </section>
+
+      <section class="bg-white p-4 rounded-2xl shadow-sm module-card border-l-4 border-l-blue-500">
+        <div class="flex items-center space-x-2 mb-3">
+          <span class="iconify text-blue-600" data-icon="ri:flashlight-fill"></span>
+          <h3 class="font-bold text-slate-900">后续关注点</h3>
+        </div>
+        <ul class="space-y-2">
+          <li class="text-sm text-slate-600 flex items-start"><span class="iconify text-slate-300 mr-2 mt-0.5 shrink-0" data-icon="ri:checkbox-circle-line"></span><span>游戏常青产品流水稳定性与新产品周期。</span></li>
+          <li class="text-sm text-slate-600 flex items-start"><span class="iconify text-slate-300 mr-2 mt-0.5 shrink-0" data-icon="ri:checkbox-circle-line"></span><span>4月披露的回购进度是否与管理层表态一致。</span></li>
+          <li class="text-sm text-slate-600 flex items-start"><span class="iconify text-slate-300 mr-2 mt-0.5 shrink-0" data-icon="ri:checkbox-circle-line"></span><span>大股东减持压力是否已在价格中充分出清。</span></li>
+        </ul>
+      </section>
+
+      <section class="bg-red-50 p-4 rounded-2xl border border-red-100">
+        <div class="flex items-center space-x-2 mb-2 text-red-700">
+          <span class="iconify" data-icon="ri:shield-warning-fill"></span>
+          <h3 class="font-bold">风险提示</h3>
+        </div>
+        <p class="text-xs text-red-600 leading-6">
+          1. 宏观环境恶化可能导致整体估值承压。2. 业务合规成本增加可能影响利润弹性。3. 本页内容仅为信息整理与辅助分析，不构成任何买入或卖出投资建议。
+        </p>
+      </section>
+    </main>
+
+    <div class="fixed bottom-0 left-0 right-0 z-50">
+      <div class="max-w-[430px] mx-auto bg-white border-t border-slate-200 safe-bottom p-4">
+        <div class="grid grid-cols-[1fr_1fr_48px] gap-3">
+          <button class="border border-slate-200 h-12 rounded-2xl font-medium text-slate-600 flex items-center justify-center space-x-2">
+            <span class="iconify" data-icon="ri:file-copy-2-line"></span>
+            <span>复制结果</span>
+          </button>
+          <button class="bg-blue-600 h-12 rounded-2xl font-bold text-white">收藏股票</button>
+          <button class="bg-slate-100 h-12 rounded-2xl text-slate-500 flex items-center justify-center">
+            <span class="iconify text-xl" data-icon="ri:refresh-line"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

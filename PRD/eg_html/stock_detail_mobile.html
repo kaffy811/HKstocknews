@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+  <title>股票详情 - 腾讯控股</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #e5e7eb;
+    }
+    .phone-shell {
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: #f8fafc;
+      position: relative;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04), 0 20px 60px rgba(15, 23, 42, 0.12);
+    }
+    .safe-top {
+      padding-top: max(10px, env(safe-area-inset-top));
+    }
+    .safe-bottom {
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: 9px;
+      top: 24px;
+      bottom: -14px;
+      width: 2px;
+      background: #e2e8f0;
+    }
+    .timeline-item:last-child::before { display: none; }
+  </style>
+</head>
+<body>
+  <div class="phone-shell">
+    <header class="bg-white sticky top-0 z-40 border-b safe-top">
+      <div class="px-4 pb-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <a class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center" href="index_mobile.html">
+            <span class="iconify text-lg text-slate-700" data-icon="ri:arrow-left-line"></span>
+          </a>
+          <div>
+            <div class="text-lg font-bold text-slate-900 leading-none">腾讯控股</div>
+            <div class="text-[11px] text-slate-400 mt-1">00700.HK</div>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
+            <span class="iconify text-slate-500" data-icon="ri:star-line"></span>
+          </button>
+          <button class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
+            <span class="iconify text-slate-500" data-icon="ri:share-line"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="bg-white border-b border-slate-100 px-4 py-4">
+      <div class="flex items-end justify-between mb-3">
+        <div>
+          <div class="text-4xl font-black text-green-600 leading-none">328.40</div>
+          <div class="flex items-center text-green-600 font-semibold mt-2">
+            <span class="iconify mr-1" data-icon="ri:arrow-right-up-line"></span>
+            <span>+12.60 (+3.45%)</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-[11px] text-slate-400">更新时间</div>
+          <div class="text-xs text-slate-600 mt-1">2026-03-16 14:32</div>
+          <div class="inline-block mt-2 text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full">实时行情</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div class="bg-slate-50 rounded-2xl p-3">
+          <div class="text-[11px] text-slate-400 mb-1">成交额</div>
+          <div class="font-bold text-slate-900">85.42亿</div>
+        </div>
+        <div class="bg-slate-50 rounded-2xl p-3">
+          <div class="text-[11px] text-slate-400 mb-1">成交量</div>
+          <div class="font-bold text-slate-900">2624万股</div>
+        </div>
+        <div class="bg-slate-50 rounded-2xl p-3">
+          <div class="text-[11px] text-slate-400 mb-1">最高</div>
+          <div class="font-bold text-green-600">332.00</div>
+        </div>
+        <div class="bg-slate-50 rounded-2xl p-3">
+          <div class="text-[11px] text-slate-400 mb-1">最低</div>
+          <div class="font-bold text-red-600">318.60</div>
+        </div>
+      </div>
+    </section>
+
+    <main class="px-4 py-4 pb-28 space-y-4">
+      <section class="bg-white p-4 rounded-2xl shadow-sm border border-blue-100">
+        <div class="flex items-center space-x-2 mb-3">
+          <span class="bg-blue-600 text-white text-[10px] px-2 py-1 rounded-full font-bold uppercase">Current Event</span>
+          <span class="text-[11px] text-slate-400 font-semibold">当前触发事件</span>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 leading-tight mb-3">披露年度业绩：净利润增长强劲，宣布提升回购额度至1000亿港元</h2>
+        <div class="flex items-center flex-wrap gap-2 mb-3">
+          <span class="text-[11px] bg-green-50 text-green-700 px-2 py-1 rounded-full font-bold">利多</span>
+          <span class="text-[11px] bg-slate-100 text-slate-600 px-2 py-1 rounded-full">年度业绩</span>
+          <span class="text-[11px] bg-slate-100 text-slate-600 px-2 py-1 rounded-full">股份回购</span>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-sm text-slate-600 leading-relaxed">
+          <span class="font-bold text-blue-600">AI 一句话影响：</span>业绩质量较高，显著加大股东回购力度，直接对冲市场抛压，对股价构成较强支撑。
+        </div>
+      </section>
+
+      <section class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="text-slate-900 font-bold mb-4 flex items-center">
+          <span class="iconify mr-2 text-orange-500" data-icon="ri:eye-line"></span>
+          风险观察区
+        </h3>
+        <div class="space-y-3">
+          <div class="flex items-start space-x-3">
+            <span class="iconify text-orange-500 mt-0.5 shrink-0" data-icon="ri:error-warning-fill"></span>
+            <div>
+              <div class="text-sm font-bold text-slate-900">短线止盈压力</div>
+              <div class="text-xs text-slate-500 leading-relaxed">近期涨幅已达15%，不排除资金回补下方缺口。</div>
+            </div>
+          </div>
+          <div class="flex items-start space-x-3">
+            <span class="iconify text-yellow-500 mt-0.5 shrink-0" data-icon="ri:alert-fill"></span>
+            <div>
+              <div class="text-sm font-bold text-slate-900">宏观地缘波动</div>
+              <div class="text-xs text-slate-500 leading-relaxed">海外资金对平台经济政策变化仍较敏感，估值弹性可能受压制。</div>
+            </div>
+          </div>
+        </div>
+        <button class="w-full mt-4 h-11 bg-slate-50 rounded-xl text-sm font-medium text-slate-600">查看全量指标</button>
+      </section>
+
+      <section class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <h3 class="text-slate-900 font-bold mb-5 flex items-center">
+          <span class="iconify mr-2 text-blue-600" data-icon="ri:history-line"></span>
+          相关投研脉络
+        </h3>
+        <div class="space-y-5 relative ml-1">
+          <div class="timeline-item relative pl-8">
+            <div class="absolute left-0 top-1 w-5 h-5 bg-blue-600 rounded-full border-4 border-blue-100"></div>
+            <div class="text-[11px] text-slate-400 mb-1">2026-03-16</div>
+            <h4 class="text-sm font-bold text-slate-800 leading-relaxed">港交所公告：年度利润增长及千亿回购计划</h4>
+          </div>
+          <div class="timeline-item relative pl-8">
+            <div class="absolute left-0 top-1 w-5 h-5 bg-slate-300 rounded-full border-4 border-slate-100"></div>
+            <div class="text-[11px] text-slate-400 mb-1">2026-02-28</div>
+            <h4 class="text-sm font-bold text-slate-800 leading-relaxed">市场异动：传视频号游戏带货收入分成比例调整</h4>
+          </div>
+          <div class="timeline-item relative pl-8">
+            <div class="absolute left-0 top-1 w-5 h-5 bg-slate-300 rounded-full border-4 border-slate-100"></div>
+            <div class="text-[11px] text-slate-400 mb-1">2026-01-15</div>
+            <h4 class="text-sm font-bold text-slate-800 leading-relaxed">大行研报：维持增持评级，目标价看至420港元</h4>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="fixed bottom-0 left-0 right-0 z-50">
+      <div class="max-w-[430px] mx-auto bg-white border-t border-slate-200 safe-bottom p-4">
+        <div class="flex items-center space-x-3">
+          <button class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-600">
+            <span class="iconify text-xl" data-icon="ri:chat-voice-line"></span>
+          </button>
+          <a class="flex-1 h-12 bg-gradient-to-r from-yellow-500 to-orange-600 text-white font-bold rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-orange-100" href="ai_diagnosis_mobile.html">
+            <span class="iconify text-xl" data-icon="ri:sparkling-fill"></span>
+            <span>AI 一键诊断</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

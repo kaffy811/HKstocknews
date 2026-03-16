@@ -1,0 +1,1062 @@
+《FastAPI + Supabase 数据表与接口设计文档 v1》
+
+核心结论
+
+这一版后端设计必须服务于一个极窄但高频的主链路：
+
+抓新闻 → 清洗去重 → 识别股票 → 关联行情 → 生成 AI 结构化诊断 → 返回前端展示
+
+所以系统设计原则只有三条：
+	1.	先保证链路通，再考虑扩展性
+	2.	先保证字段够用，再考虑模型优雅
+	3.	先保证 AI 输出可控，再考虑智能程度
+
+这一版文档以 FastAPI + Supabase(PostgreSQL + pgvector + Auth + Storage) 为基础，直接对应你目前已经定下来的 3 个核心页面：
+	•	资讯流列表页
+	•	股票详情页
+	•	AI 诊断页
+
+⸻
+
+1. 文档目标
+
+本设计文档用于统一以下内容：
+	•	后端服务职责划分
+	•	Supabase 数据表设计
+	•	核心 API 设计
+	•	AI 任务流设计
+	•	定时任务与数据清洗流设计
+	•	MVP 阶段字段范围与边界
+
+⸻
+
+2. 技术架构总览
+
+2.1 总体架构
+
+数据源
+├─ 港交所公告 / 财经快讯 / 媒体资讯
+├─ 基础行情 API
+└─ 用户请求
+
+采集与处理层
+├─ Playwright / requests 抓取
+├─ 清洗与去重
+├─ 实体识别与股票映射
+├─ 标签生成
+└─ 入库 Supabase
+
+服务层 FastAPI
+├─ 资讯流接口
+├─ 股票详情接口
+├─ AI 诊断接口
+├─ 搜索接口
+├─ 收藏与历史接口
+└─ 内部管理接口
+
+AI 层
+├─ 新闻摘要
+├─ 事件标签提取
+├─ 结构化诊断
+└─ RAG 检索
+
+Supabase
+├─ PostgreSQL
+├─ pgvector
+├─ Auth
+└─ Storage
+
+前端
+├─ 首页资讯流
+├─ 股票详情页
+└─ AI 诊断页
+
+
+⸻
+
+2.2 FastAPI 服务模块划分建议
+
+建议目录结构如下：
+
+app/
+├─ main.py
+├─ core/
+│  ├─ config.py
+│  ├─ database.py
+│  ├─ security.py
+│  └─ logger.py
+├─ api/
+│  ├─ news.py
+│  ├─ tickers.py
+│  ├─ ai.py
+│  ├─ users.py
+│  ├─ favorites.py
+│  └─ internal.py
+├─ schemas/
+│  ├─ news.py
+│  ├─ ticker.py
+│  ├─ ai.py
+│  ├─ user.py
+│  └─ common.py
+├─ services/
+│  ├─ news_service.py
+│  ├─ ticker_service.py
+│  ├─ quote_service.py
+│  ├─ ai_service.py
+│  ├─ rag_service.py
+│  ├─ tag_service.py
+│  └─ favorite_service.py
+├─ models/
+│  └─ 仅保留 ORM 或 SQLModel 模型
+├─ jobs/
+│  ├─ crawl_news.py
+│  ├─ clean_news.py
+│  ├─ update_quotes.py
+│  └─ backfill_embeddings.py
+└─ utils/
+   ├─ dedup.py
+   ├─ text_cleaner.py
+   ├─ ticker_matcher.py
+   └─ risk_filter.py
+
+
+⸻
+
+3. 核心业务对象
+
+MVP 阶段系统里只有 7 个核心业务对象：
+
+对象	说明
+NewsRaw	原始新闻
+NewsClean	清洗后的新闻
+Ticker	港股股票主数据
+NewsTickerLink	新闻与股票关联
+QuoteSnapshot	行情快照
+AIDiagnosis	AI 结构化诊断记录
+UserFavorite	用户收藏
+
+
+⸻
+
+4. Supabase 数据表设计
+
+4.1 设计原则
+
+原则一
+
+原始数据和清洗数据分层存储，不要混在一张表里。
+
+原则二
+
+AI 结果单独落表，便于缓存和重用。
+
+原则三
+
+新闻与股票使用中间表，不直接把股票数组塞进新闻主表。
+
+原则四
+
+MVP 阶段优先保留“够用字段”，不要一次设计成研究终端。
+
+⸻
+
+4.2 数据表总览
+
+核心表
+	•	ticker_master
+	•	news_raw
+	•	news_clean
+	•	news_ticker_link
+	•	quote_snapshot
+	•	ai_diagnosis
+	•	user_favorites
+	•	user_recent_views
+
+可选增强表
+	•	news_embedding
+	•	theme_dictionary
+	•	event_taxonomy
+	•	crawl_job_logs
+
+⸻
+
+4.3 ticker_master
+
+港股股票主数据表。
+
+字段设计
+
+字段名	类型	约束	说明
+id	uuid	pk	主键
+symbol	varchar(20)	unique, not null	股票代码，如 00700.HK
+short_code	varchar(10)	index	短代码，如 00700
+name_zh	varchar(100)	not null	中文名称
+name_en	varchar(150)		英文名称
+aliases	jsonb		别名数组
+sector	varchar(100)	index	一级行业
+subsector	varchar(100)		二级行业
+concept_tags	jsonb		概念标签
+market	varchar(20)	default ‘HK’	市场
+ah_pair_symbol	varchar(20)	nullable	A/H 对应代码
+is_active	boolean	default true	是否活跃
+created_at	timestamptz	default now()	创建时间
+updated_at	timestamptz	default now()	更新时间
+
+索引建议
+	•	unique(symbol)
+	•	index(short_code)
+	•	gin(aliases)
+	•	index(name_zh)
+
+⸻
+
+4.4 news_raw
+
+原始新闻表，用于保存抓取结果。
+
+字段名	类型	约束	说明
+id	uuid	pk	主键
+source_name	varchar(100)	index	来源名
+source_type	varchar(50)	index	来源类型，如 announcement, media, flash
+source_url	text		原文链接
+title_raw	text	not null	原始标题
+content_raw	text		原始正文
+published_at	timestamptz	index	发布时间
+fetched_at	timestamptz	default now()	抓取时间
+lang	varchar(10)	default ‘zh’	语言
+crawl_status	varchar(20)	default ‘success’	抓取状态
+raw_hash	varchar(64)	index	原始内容 hash
+metadata	jsonb		额外元数据
+
+说明
+
+这张表不直接给前端用，只做留档和可追溯。
+
+⸻
+
+4.5 news_clean
+
+清洗后的新闻主表，是前端主要依赖表之一。
+
+字段名	类型	约束	说明
+id	uuid	pk	主键
+raw_news_id	uuid	fk -> news_raw.id	对应原始新闻
+clean_title	text	not null	清洗后标题
+clean_content	text		清洗后正文
+summary_short	text		AI 一句话摘要
+summary_medium	text		中等长度摘要
+published_at	timestamptz	index	发布时间
+source_name	varchar(100)	index	来源
+dedup_hash	varchar(64)	index	去重指纹
+event_type	varchar(50)	index	事件类型
+sentiment_label	varchar(20)	index	利多 / 利空 / 中性
+risk_label	varchar(50)	index	风险标签
+importance_score	numeric(5,2)	default 0	重要度
+is_duplicate	boolean	default false	是否重复
+duplicate_of	uuid	nullable	主新闻 ID
+processing_status	varchar(20)	default ‘ready’	ready / failed / pending
+extra_tags	jsonb		其他标签
+created_at	timestamptz	default now()	创建时间
+updated_at	timestamptz	default now()	更新时间
+
+索引建议
+	•	index(published_at desc)
+	•	index(event_type)
+	•	index(sentiment_label)
+	•	index(importance_score desc)
+	•	unique(dedup_hash) 可选，若允许轻微重复则不要强唯一
+
+⸻
+
+4.6 news_ticker_link
+
+新闻与股票的多对多关联表。
+
+字段名	类型	约束	说明
+id	uuid	pk	主键
+news_id	uuid	fk -> news_clean.id	新闻 ID
+ticker_id	uuid	fk -> ticker_master.id	股票 ID
+match_type	varchar(30)		title / content / ai_extract / manual
+confidence	numeric(5,2)	default 0	匹配置信度
+is_primary	boolean	default false	是否主关联股票
+created_at	timestamptz	default now()	创建时间
+
+索引建议
+	•	unique(news_id, ticker_id)
+	•	index(ticker_id, created_at desc)
+	•	index(news_id)
+
+⸻
+
+4.7 quote_snapshot
+
+股票行情快照表。
+
+字段名	类型	约束	说明
+id	uuid	pk	主键
+ticker_id	uuid	fk -> ticker_master.id	股票 ID
+symbol	varchar(20)	index	冗余代码便于查
+last_price	numeric(18,4)		最新价
+pct_change	numeric(10,4)		涨跌幅
+abs_change	numeric(18,4)		涨跌额
+volume	bigint		成交量
+turnover	numeric(20,2)		成交额
+high_price	numeric(18,4)		最高
+low_price	numeric(18,4)		最低
+prev_close	numeric(18,4)		昨收
+snapshot_at	timestamptz	index	快照时间
+source_name	varchar(50)		行情源
+
+设计建议
+
+MVP 可以只保留最近一条快照，或者按天保留分时快照。
+低预算阶段建议：
+	•	当前最新行情单独缓存
+	•	日内历史快照少量留存
+
+⸻
+
+4.8 ai_diagnosis
+
+AI 诊断记录表。
+
+字段名	类型	约束	说明
+id	uuid	pk	主键
+ticker_id	uuid	fk -> ticker_master.id	股票 ID
+news_id	uuid	fk -> news_clean.id	触发新闻 ID
+prompt_version	varchar(30)	index	Prompt 版本
+model_name	varchar(50)		模型名
+event_summary	text		事件摘要
+impact_mechanism	jsonb		影响机制数组
+market_reaction	text		市场反应
+follow_up_points	jsonb		后续关注点
+risk_warning	jsonb		风险提示
+completeness_level	varchar(20)		high / medium / low
+status	varchar(20)	default ‘success’	success / failed
+raw_result	jsonb		模型原始返回
+created_at	timestamptz	default now()	创建时间
+
+说明
+
+前端 AI 诊断页优先读这张表，不一定每次现算。
+这能降低成本并提升稳定性。
+
+⸻
+
+4.9 news_embedding 可选
+
+用于 RAG 的向量表。MVP 初期可先不建，后续补。
+
+字段名	类型	约束	说明
+id	uuid	pk	主键
+news_id	uuid	fk -> news_clean.id	新闻 ID
+embedding	vector(1536)		向量
+chunk_text	text		切片文本
+chunk_index	int		块序号
+created_at	timestamptz	default now()	创建时间
+
+
+⸻
+
+4.10 user_favorites
+
+用户收藏表。
+
+字段名	类型	约束	说明
+id	uuid	pk	主键
+user_id	uuid	index	Supabase Auth 用户 ID
+favorite_type	varchar(20)	index	ticker / news
+ref_id	uuid	index	对应新闻或股票 ID
+created_at	timestamptz	default now()	创建时间
+
+
+⸻
+
+4.11 user_recent_views
+
+用户最近浏览记录。
+
+字段名	类型	约束	说明
+id	uuid	pk	主键
+user_id	uuid	index	用户 ID
+view_type	varchar(20)	index	ticker / news / diagnosis
+ref_id	uuid	index	目标 ID
+created_at	timestamptz	default now()	浏览时间
+
+
+⸻
+
+5. Supabase 权限与 Row Level Security 设计
+
+5.1 MVP 权限原则
+
+公共可读
+
+以下表前期可以对匿名用户开放读权限：
+	•	ticker_master
+	•	news_clean
+	•	news_ticker_link
+	•	quote_snapshot
+	•	ai_diagnosis 只读部分字段
+
+用户私有
+
+以下表必须启用 RLS：
+	•	user_favorites
+	•	user_recent_views
+
+⸻
+
+5.2 RLS 思路
+
+user_favorites
+
+用户只能读写自己的收藏。
+
+user_recent_views
+
+用户只能读写自己的浏览记录。
+
+ai_diagnosis
+
+如果未来要区分免费与订阅用户，可在应用层控制，不一定靠数据库层实现。
+
+⸻
+
+6. FastAPI Schema 设计
+
+以下只给最核心的请求和响应结构。
+
+⸻
+
+6.1 schemas/news.py
+
+新闻卡片响应
+
+from pydantic import BaseModel
+from typing import List, Optional
+
+class TickerTag(BaseModel):
+    symbol: str
+    name: str
+
+class NewsCardResponse(BaseModel):
+    news_id: str
+    title: str
+    published_at: str
+    source: str
+    tickers: List[TickerTag]
+    event_tags: List[str]
+    ai_summary_short: Optional[str] = None
+    sentiment_label: Optional[str] = None
+    risk_label: Optional[str] = None
+
+
+⸻
+
+6.2 schemas/ticker.py
+
+from pydantic import BaseModel
+from typing import List, Optional
+
+class TriggerNews(BaseModel):
+    news_id: str
+    title: str
+    event_type: Optional[str] = None
+    sentiment_label: Optional[str] = None
+    ai_summary_short: Optional[str] = None
+
+class RelatedNewsItem(BaseModel):
+    news_id: str
+    time: str
+    title: str
+    event_type: Optional[str] = None
+    sentiment_label: Optional[str] = None
+
+class TickerDetailResponse(BaseModel):
+    symbol: str
+    name: str
+    price: Optional[float] = None
+    pct_change: Optional[float] = None
+    turnover: Optional[str] = None
+    updated_at: Optional[str] = None
+    trigger_news: Optional[TriggerNews] = None
+    related_news: List[RelatedNewsItem]
+    risk_tags: List[str]
+
+
+⸻
+
+6.3 schemas/ai.py
+
+from pydantic import BaseModel
+from typing import List, Optional
+
+class AIDiagnosisResponse(BaseModel):
+    diagnosis_id: str
+    symbol: str
+    name: str
+    price: Optional[float] = None
+    pct_change: Optional[float] = None
+    generated_at: str
+    completeness_level: Optional[str] = None
+    event_summary: str
+    impact_mechanism: List[str]
+    market_reaction: str
+    follow_up_points: List[str]
+    risk_warning: List[str]
+
+AI 请求体
+
+class GenerateDiagnosisRequest(BaseModel):
+    symbol: str
+    trigger_news_id: Optional[str] = None
+    force_refresh: bool = False
+
+
+⸻
+
+7. API 设计
+
+7.1 设计原则
+	•	REST 为主
+	•	返回结构尽量贴近前端页面
+	•	列表页接口直接返回可渲染字段
+	•	AI 接口返回结构化结果，不返回大段自由文本
+
+⸻
+
+8. 新闻相关接口
+
+8.1 获取资讯流列表
+
+GET /api/v1/news
+
+查询参数
+
+参数	类型	必填	说明
+page	int	否	默认 1
+page_size	int	否	默认 20
+event_type	str	否	业绩、回购、政策等
+sentiment	str	否	利多 / 利空 / 中性
+keyword	str	否	搜索关键字
+symbol	str	否	指定股票代码
+only_important	bool	否	是否只看重要新闻
+
+响应示例
+
+{
+  "page": 1,
+  "page_size": 20,
+  "total": 134,
+  "items": [
+    {
+      "news_id": "n_001",
+      "title": "腾讯控股去年多项核心业务保持两位数增长，计划增加股份回购规模",
+      "published_at": "2026-03-16T10:24:00+08:00",
+      "source": "港交所公告",
+      "tickers": [
+        {
+          "symbol": "00700.HK",
+          "name": "腾讯控股"
+        }
+      ],
+      "event_tags": ["年度业绩", "回购公告", "估值修复"],
+      "ai_summary_short": "腾讯年度净利润超预期，回购注销力度加大，股东回报意愿较强。",
+      "sentiment_label": "利多",
+      "risk_label": "短线涨幅已反映"
+    }
+  ]
+}
+
+
+⸻
+
+8.2 获取新闻详情
+
+GET /api/v1/news/{news_id}
+
+返回字段
+
+字段	说明
+title	标题
+content	正文
+source	来源
+published_at	发布时间
+tickers	关联股票
+event_type	事件类型
+sentiment_label	情绪标签
+risk_label	风险标签
+ai_summary_short	一句话摘要
+ai_summary_medium	扩展摘要
+
+
+⸻
+
+8.3 获取新闻关联股票
+
+GET /api/v1/news/{news_id}/tickers
+
+用于新闻详情页高亮股票跳转。
+
+⸻
+
+9. 股票相关接口
+
+9.1 搜索股票
+
+GET /api/v1/tickers/search
+
+查询参数
+	•	q: 关键词，支持代码、简称、别名
+
+响应示例
+
+{
+  "items": [
+    {
+      "symbol": "00700.HK",
+      "name": "腾讯控股",
+      "price": 328.4,
+      "pct_change": 3.45
+    }
+  ]
+}
+
+
+⸻
+
+9.2 获取股票详情
+
+GET /api/v1/tickers/{symbol}
+
+这个接口直接服务股票详情页。
+
+查询参数
+	•	trigger_news_id 可选，用于保留从某条新闻进入的上下文
+
+返回结构
+
+直接返回 TickerDetailResponse
+
+⸻
+
+9.3 获取股票相关新闻
+
+GET /api/v1/tickers/{symbol}/news
+
+查询参数
+
+参数	类型	说明
+days	int	默认 30
+limit	int	默认 20
+
+
+⸻
+
+9.4 获取股票最新行情
+
+GET /api/v1/tickers/{symbol}/quote
+
+用于单独刷新行情。
+
+⸻
+
+10. AI 相关接口
+
+10.1 生成新闻摘要
+
+POST /api/v1/ai/news-summary/{news_id}
+
+作用
+
+为新闻补全或刷新一条摘要。
+
+典型场景
+	•	抓取后异步补摘要
+	•	管理后台重跑摘要
+
+⸻
+
+10.2 生成股票 AI 诊断
+
+POST /api/v1/ai/diagnosis
+
+请求体
+
+{
+  "symbol": "00700.HK",
+  "trigger_news_id": "n_001",
+  "force_refresh": false
+}
+
+处理逻辑
+	1.	查询股票主数据
+	2.	获取最新行情
+	3.	获取触发新闻
+	4.	获取近 30 天相关新闻
+	5.	拼装 Prompt
+	6.	请求模型
+	7.	结构化校验
+	8.	风险词过滤
+	9.	写入 ai_diagnosis
+	10.	返回前端
+
+返回
+
+AIDiagnosisResponse
+
+⸻
+
+10.3 获取历史 AI 诊断
+
+GET /api/v1/ai/diagnosis/history
+
+查询参数
+	•	symbol
+	•	page
+	•	page_size
+
+⸻
+
+10.4 获取单条 AI 诊断详情
+
+GET /api/v1/ai/diagnosis/{diagnosis_id}
+
+⸻
+
+11. 用户相关接口
+
+11.1 收藏股票或新闻
+
+POST /api/v1/favorites
+
+{
+  "favorite_type": "ticker",
+  "ref_id": "ticker_uuid"
+}
+
+
+⸻
+
+11.2 取消收藏
+
+DELETE /api/v1/favorites/{favorite_id}
+
+⸻
+
+11.3 获取我的收藏
+
+GET /api/v1/favorites
+
+支持按 favorite_type 过滤。
+
+⸻
+
+11.4 记录最近浏览
+
+POST /api/v1/recent-views
+
+{
+  "view_type": "ticker",
+  "ref_id": "ticker_uuid"
+}
+
+
+⸻
+
+12. 内部任务接口
+
+这些接口不对前端开放，可走 admin token。
+
+12.1 手动触发新闻抓取
+
+POST /internal/jobs/crawl-news
+
+12.2 手动触发新闻清洗
+
+POST /internal/jobs/clean-news
+
+12.3 手动刷新行情
+
+POST /internal/jobs/update-quotes
+
+12.4 手动重跑 AI 诊断
+
+POST /internal/jobs/regenerate-diagnosis
+
+⸻
+
+13. 数据处理流设计
+
+13.1 新闻采集流
+
+抓取原始新闻
+→ 写入 news_raw
+→ 文本清洗
+→ 去重 hash 计算
+→ 写入 news_clean
+→ 股票识别与映射
+→ 写入 news_ticker_link
+→ 生成摘要与标签
+→ 更新 news_clean
+
+
+⸻
+
+13.2 行情更新流
+
+按股票列表拉取基础行情
+→ 规范字段
+→ 写入 quote_snapshot
+→ 刷新首页与股票详情缓存
+
+频率建议
+	•	交易时段 1 到 3 分钟一次
+	•	非交易时段降低频率
+
+⸻
+
+13.3 AI 诊断生成流
+
+收到前端请求
+→ 检查是否已有近时段缓存诊断
+→ 若有且未强制刷新则直接返回
+→ 若无则拉取新闻 + 行情 + 历史资讯
+→ 构造 Prompt
+→ 请求模型
+→ Instructor / Pydantic 校验
+→ 风险词过滤
+→ 入库 ai_diagnosis
+→ 返回结果
+
+
+⸻
+
+14. AI Prompt 与结构化输出约束
+
+14.1 输出结构
+
+模型必须严格输出：
+	•	event_summary
+	•	impact_mechanism
+	•	market_reaction
+	•	follow_up_points
+	•	risk_warning
+	•	completeness_level
+
+⸻
+
+14.2 合规过滤
+
+在模型返回后做一层服务端过滤：
+
+高风险词列表
+	•	买入
+	•	卖出
+	•	建仓
+	•	清仓
+	•	抄底
+	•	目标价
+	•	稳赚
+	•	保本
+	•	必涨
+
+处理方式
+	•	命中则替换或拦截
+	•	记录日志
+	•	必要时降级为固定模板结果
+
+⸻
+
+14.3 结构化输出示例
+
+{
+  "event_summary": "公司披露年度业绩增长，并提升未来回购规模，市场将其解读为基本面稳健与股东回报增强。",
+  "impact_mechanism": [
+    "业绩增长提升盈利预期。",
+    "回购规模增加有助于改善每股收益预期。",
+    "资金面上可能增强长线持有信心。"
+  ],
+  "market_reaction": "当前股价与成交额均有正向反应，但需观察后续资金持续性。",
+  "follow_up_points": [
+    "后续回购执行节奏。",
+    "管理层对核心业务的最新指引。",
+    "南向资金是否继续流入。"
+  ],
+  "risk_warning": [
+    "短线涨幅可能已部分反映利好。",
+    "若整体市场风险偏好回落，单一利好持续性有限。",
+    "本内容仅供信息整理与辅助分析，不构成投资建议。"
+  ],
+  "completeness_level": "high"
+}
+
+
+⸻
+
+15. 缓存策略设计
+
+15.1 为什么要缓存
+
+AI 最贵，行情最频繁，新闻列表最常访问。
+所以必须做三层缓存。
+
+⸻
+
+15.2 建议缓存点
+
+数据	缓存建议
+首页资讯流	30 到 60 秒
+股票详情页聚合数据	60 秒
+最新行情	30 到 60 秒
+AI 诊断结果	30 分钟到 6 小时
+搜索结果	10 分钟
+
+
+⸻
+
+15.3 MVP 可行方案
+
+低预算下可以先用：
+	•	FastAPI 内存缓存
+	•	Redis 可选
+	•	Supabase 结果表复用
+
+最务实的是：
+AI 结果直接落表并优先复用
+
+⸻
+
+16. 错误处理与降级设计
+
+16.1 新闻抓取失败
+	•	记录 job log
+	•	保留旧数据
+	•	不影响前端展示
+
+16.2 行情源失败
+	•	股票详情页展示上次快照
+	•	标注更新时间
+
+16.3 AI 失败
+	•	返回兜底文案
+	•	不阻塞股票详情页
+	•	提供“稍后重试”按钮
+
+兜底文案建议
+
+当前暂无法生成结构化诊断，请稍后重试。您仍可查看相关新闻与基础行情。
+
+⸻
+
+17. 日志与监控
+
+17.1 必须记录的日志
+
+类型	内容
+crawl log	抓取成功数、失败数、来源
+clean log	清洗数、去重数、失败数
+match log	股票映射成功率
+ai log	调用耗时、失败率、模型名
+api log	接口耗时、状态码
+
+
+⸻
+
+17.2 MVP 必盯 5 个后台指标
+	1.	新闻抓取成功率
+	2.	股票映射准确率
+	3.	AI 诊断成功率
+	4.	首页接口平均耗时
+	5.	股票详情页接口平均耗时
+
+⸻
+
+18. 开发优先级
+
+P0 必做
+	•	ticker_master
+	•	news_raw
+	•	news_clean
+	•	news_ticker_link
+	•	quote_snapshot
+	•	ai_diagnosis
+	•	首页新闻接口
+	•	股票详情接口
+	•	AI 诊断接口
+	•	搜索接口
+
+P1 建议做
+	•	user_favorites
+	•	user_recent_views
+	•	历史诊断接口
+	•	内部 job 接口
+
+P2 后续做
+	•	pgvector RAG
+	•	主题看板
+	•	个股异动提醒
+	•	更细粒度事件分类
+
+⸻
+
+19. 首版建表顺序建议
+
+建议你按这个顺序建，最快：
+
+第一步
+	•	ticker_master
+
+第二步
+	•	news_raw
+	•	news_clean
+
+第三步
+	•	news_ticker_link
+
+第四步
+	•	quote_snapshot
+
+第五步
+	•	ai_diagnosis
+
+第六步
+	•	user_favorites
+	•	user_recent_views
+
+⸻
+
+20. MVP 交付标准
+
+只要你完成以下内容，后端就已经够支撑首版原型：
+
+数据层
+	•	股票主数据可查
+	•	新闻可抓可清洗
+	•	新闻和股票能关联
+	•	行情能展示
+	•	AI 诊断可缓存
+
+接口层
+	•	首页资讯流接口可用
+	•	股票详情接口可用
+	•	AI 诊断接口可用
+	•	搜索接口可用
+
+合规层
+	•	AI 输出结构固定
+	•	风险提示固定存在
+	•	高风险表述可拦截
+
+⸻
+
+21. 下一步最适合做什么
+
+现在最自然的下一步，不是再写战略文档，而是直接进入工程落地：
+
+A. 生成 Supabase PostgreSQL 建表 SQL v1
+或者
+B. 生成 FastAPI 项目脚手架目录 + 首批 Pydantic Schema + 路由代码骨架
+
+我建议先做 A，再做 B。这样你可以直接开始搭库。
